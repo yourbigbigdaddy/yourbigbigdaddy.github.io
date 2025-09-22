@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>简洁定制店 — 示例</title>
+  <style>
+    /* 简洁样式：你可以按需改 */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; padding:0; background:#f7f7f8; color:#222; }
+    header { background:#fff; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 0 rgba(0,0,0,.06); position:sticky; top:0; z-index:10; }
+    .brand { font-weight:700; font-size:18px; }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .btn { background:#111; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; cursor:pointer; }
+    .btn.secondary { background:#fff; color:#111; border:1px solid #ddd; }
+    main { padding:20px; max-width:1100px; margin:0 auto; display:grid; grid-template-columns: 1fr 320px; gap:20px; }
+    .products { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+    .card { background:#fff; padding:12px; border-radius:8px; box-shadow:0 6px 18px rgba(20,20,30,.04); display:flex; flex-direction:column; gap:8px; }
+    .card img { width:100%; height:150px; object-fit:cover; border-radius:6px; }
+    .price { font-weight:700; }
+    .cart { background:#fff; padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(20,20,30,.04); }
+    .cart h3 { margin:0 0 8px 0; }
+    .cartlist { max-height:360px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+    .cartitem { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .small { font-size:13px; color:#666; }
+    .coupon { margin-top:8px; display:flex; gap:6px; }
+    #paypal-buttons { margin-top:12px; }
+    footer { padding:20px; text-align:center; color:#888; font-size:13px; }
+    .langbtn { border:1px solid #eee; padding:6px 8px; border-radius:6px; cursor:pointer; background:#fff; }
+    @media (max-width:900px){ main { grid-template-columns:1fr; } .cart{ order:2 } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand" id="site-title">简洁定制店</div>
+    <div class="controls">
+      <div>
+        <button class="langbtn" onclick="setLang('zh')">中文</button>
+        <button class="langbtn" onclick="setLang('en')">EN</button>
+      </div>
+      <div style="width:12px"></div>
+      <div id="cart-toggle" class="btn" onclick="toggleCart()">购物车 (<span id="cart-count">0</span>)</div>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2 id="heading-products">产品</h2>
+      <div class="products" id="products"></div>
+    </section>
+
+    <aside class="cart" id="cart-panel" style="display:block;">
+      <h3 id="cart-title">购物车</h3>
+      <div class="cartlist" id="cart-list"></div>
+      <div class="small" id="cart-subtotal">小计: $0.00</div>
+
+      <div class="coupon">
+        <input id="coupon-code" placeholder="优惠码 (例: DISCOUNT10)" style="flex:1; padding:8px; border:1px solid #eee; border-radius:6px;" />
+        <button class="btn secondary" onclick="applyCoupon()">使用</button>
+      </div>
+      <div class="small" id="coupon-msg"></div>
+
+      <div id="paypal-buttons"></div>
+    </aside>
+  </main>
+
+  <footer>© 简洁定制店 — 示例页面</footer>
+
+  <!-- PayPal SDK：把 client-id 换成你自己的（sandbox 或 live） -->
+  <script src="https://www.paypal.com/sdk/js?client-id=REPLACE_WITH_YOUR_PAYPAL_CLIENT_ID&currency=USD"></script>
+
+  <script>
+    /********** 基础数据（把产品改成你自己的） **********/
+    const PRODUCTS = [
+      {
+        id: "mug001",
+        title: { zh: "定制马克杯", en: "Custom Mug" },
+        price: 18.00,
+        currency: "USD",
+        stock: 20,
+        img: "https://images.unsplash.com/photo-1523986371872-9d3ba2e2f642?auto=format&fit=crop&w=800&q=60",
+        description: { zh: "可以印字的陶瓷杯", en: "Ceramic mug with custom text" }
+      },
+      {
+        id: "shirt001",
+        title: { zh: "定制T恤", en: "Custom T-Shirt" },
+        price: 28.00,
+        currency: "USD",
+        stock: 10,
+        img: "https://images.unsplash.com/photo-1520975915910-7f8b2d2a1a8d?auto=format&fit=crop&w=800&q=60",
+        description: { zh: "印图案的纯棉T恤", en: "100% cotton T-shirt" }
+      }
+    ];
+
+    // 简易优惠券（客户端验证：仅作示例）
+    const COUPONS = {
+      "DISCOUNT10": { type: "percent", value: 10 }, // 10% off
+      "SAVE5": { type: "fixed", value: 5 } // $5 off
+    };
+
+    /********** 状态 **********/
+    let lang = localStorage.getItem('lang') || 'zh';
+    let cart = JSON.parse(localStorage.getItem('cart_v1') || "[]");
+    let appliedCoupon = null;
+
+    /********** 渲染 产品 列表 **********/
+    function formatMoney(n){ return Number(n).toFixed(2); }
+
+    function renderProducts(){
+      const cont = document.getElementById('products');
+      cont.innerHTML = '';
+      PRODUCTS.forEach(p=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${p.img}" alt="${p.title[lang]}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">${p.title[lang]}</div>
+              <div class="small">${p.description[lang]}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="price">$${formatMoney(p.price)}</div>
+              <div class="small">Stock: ${p.stock}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="addToCart('${p.id}', 1)">${lang==='zh'?'加入购物车':'Add'}</button>
+            <button class="btn secondary" onclick="openQuick('${p.id}')">${lang==='zh'?'快速预览':'Quick view'}</button>
+          </div>
+        `;
+        cont.appendChild(card);
+      });
+    }
+
+    function openQuick(id){
+      const p = PRODUCTS.find(x=>x.id===id);
+      alert((lang==='zh'?p.title.zh:p.title.en) + "\\n$" + formatMoney(p.price) + "\\n\\n" + (lang==='zh'?p.description.zh:p.description.en));
+    }
+
+    /********** 购物车逻辑 **********/
+    function saveCart(){ localStorage.setItem('cart_v1', JSON.stringify(cart)); renderCartCount(); renderCart(); }
+
+    function addToCart(id, qty=1){
+      const p = PRODUCTS.find(x=>x.id===id);
+      if(!p) return alert('Product not found');
+      const item = cart.find(i=>i.id===id);
+      const newQty = (item? item.qty : 0) + qty;
+      if(newQty > p.stock) return alert(lang==='zh'?'库存不足':'Not enough stock');
+      if(item) item.qty = newQty; else cart.push({ id: id, qty: qty, price: p.price, title: p.title });
+      saveCart();
+      alert(lang==='zh'?'已加入购物车':'Added to cart');
+    }
+
+    function removeFromCart(id){
+      cart = cart.filter(i=>i.id!==id);
+      saveCart();
+    }
+
+    function changeQty(id, qty){
+      const p = PRODUCTS.find(x=>x.id===id);
+      if(qty < 1) return removeFromCart(id);
+      if(qty > p.stock) return alert(lang==='zh'?'库存不足':'Not enough stock');
+      const item = cart.find(i=>i.id===id);
+      if(item) item.qty = qty;
+      saveCart();
+    }
+
+    function computeSubtotal(){
+      return cart.reduce((s,i)=> s + (i.price * i.qty), 0);
+    }
+
+    function renderCart(){
+      const list = document.getElementById('cart-list');
+      list.innerHTML = '';
+      if(cart.length===0){
+        list.innerHTML = `<div class="small">${lang==='zh'?'购物车为空':'Your cart is empty'}</div>`;
+      } else {
+        cart.forEach(i=>{
+          const p = PRODUCTS.find(x=>x.id===i.id);
+          const div = document.createElement('div');
+          div.className = 'cartitem';
+          div.innerHTML = `
+            <div style="flex:1">
+              <div style="font-weight:600">${ (i.title && i.title[lang]) ? i.title[lang] : (p? p.title[lang] : i.id) }</div>
+              <div class="small">$${formatMoney(i.price)} × 
+                <input style="width:48px;padding:4px;margin-left:6px" type="number" min="1" value="${i.qty}" onchange="changeQty('${i.id}', Number(this.value))" />
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">$${formatMoney(i.price * i.qty)}</div>
+              <div><button class="btn secondary" onclick="removeFromCart('${i.id}')">${lang==='zh'?'移除':'Remove'}</button></div>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+      }
+      const subtotal = computeSubtotal();
+      let total = subtotal;
+      if(appliedCoupon){
+        if(appliedCoupon.type === 'percent') total = total * (1 - appliedCoupon.value/100);
+        else if(appliedCoupon.type === 'fixed') total = Math.max(0, total - appliedCoupon.value);
+      }
+      document.getElementById('cart-subtotal').innerText = (lang==='zh'?'小计':'Subtotal') + `: $${formatMoney(total)}`;
+      document.getElementById('coupon-msg').innerText = appliedCoupon ? (lang==='zh'?'已应用优惠码':'Coupon applied') : '';
+      renderPayPalButtons(); // 每次渲染时更新按钮（PayPal 按钮会被销毁重建）
+      renderCartCount();
+    }
+
+    function renderCartCount(){
+      const count = cart.reduce((s,i)=> s + i.qty, 0);
+      document.getElementById('cart-count').innerText = count;
+    }
+
+    function toggleCart(){
+      const panel = document.getElementById('cart-panel');
+      panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function applyCoupon(){
+      const code = document.getElementById('coupon-code').value.trim().toUpperCase();
+      if(!code) return alert(lang==='zh'?'请输入优惠码':'Please enter coupon code');
+      const c = COUPONS[code];
+      if(!c) return alert(lang==='zh'?'优惠码无效':'Coupon invalid');
+      appliedCoupon = c;
+      saveCart();
+      alert(lang==='zh'?'已应用优惠':'Coupon applied');
+    }
+
+    /********** 多语言 **********/
+    function setLang(l){
+      lang = l;
+      localStorage.setItem('lang', lang);
+      document.getElementById('site-title').innerText = (lang==='zh'?'简洁定制店':'Simple Custom Shop');
+      document.getElementById('heading-products').innerText = (lang==='zh'?'产品':'Products');
+      document.getElementById('cart-title').innerText = (lang==='zh'?'购物车':'Cart');
+      renderProducts();
+      renderCart();
+    }
+
+    /********** PayPal 客户端结账（actions.order.create） **********/
+    // 注意：script标签顶部必须包含 PayPal SDK 并把 client-id 替换为你的
+    function renderPayPalButtons(){
+      const container = document.getElementById('paypal-buttons');
+      container.innerHTML = '';
+      if(cart.length === 0) return;
+      // 确保 paypal 对象存在
+      if(typeof paypal === 'undefined'){ container.innerText = (lang==='zh'?'支付暂不可用':'Payment unavailable'); return; }
+
+      // 重新创建按钮（如果多次调用，PayPal SDK 会覆盖上一次）
+      paypal.Buttons({
+        createOrder: function(data, actions) {
+          const subtotal = computeSubtotal();
+          let total = subtotal;
+          if(appliedCoupon){
+            if(appliedCoupon.type === 'percent') total = total * (1 - appliedCoupon.value/100);
+            else if(appliedCoupon.type === 'fixed') total = Math.max(0, total - appliedCoupon.value);
+          }
+          // items 列表（供显示）
+          const items = cart.map(i=>{
+            const p = PRODUCTS.find(x=>x.id===i.id);
+            return {
+              name: (p ? p.title.en : i.id),
+              unit_amount: { currency_code: "USD", value: formatMoney(i.price) },
+              quantity: String(i.qty)
+            };
+          });
+
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                currency_code: "USD",
+                value: formatMoney(total),
+                breakdown: {
+                  item_total: { currency_code: "USD", value: formatMoney(total) }
+                }
+              },
+              items: items
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            // 支付成功后的处理（这里是客户端示例）
+            const payerName = details.payer && details.payer.name && details.payer.name.given_name ? details.payer.name.given_name : '';
+            alert((lang==='zh'?'支付成功，感谢 ':'Payment complete, thanks ') + payerName + '!');
+            // 这里可以做：发邮件给自己，清空购物车，减少库存（但注意：客户端减少库存并不防并发）
+            cart = [];
+            appliedCoupon = null;
+            saveCart();
+          });
+        },
+        onError: function(err){
+          console.error(err);
+          alert(lang==='zh'?'支付遇到错误':'Payment error occurred');
+        }
+      }).render('#paypal-buttons');
+    }
+
+    /********** 启动渲染 **********/
+    (function init(){
+      setLang(lang);
+      renderProducts();
+      renderCart();
+    })();
+  </script>
+</body>
+</html>
