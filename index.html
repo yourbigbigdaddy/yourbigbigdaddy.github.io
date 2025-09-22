@@ -63,7 +63,7 @@
     </aside>
   </main>
 
-  <footer>© 简洁定制店 — 示例页面</footer>
+  <footer>© 模型定制店 — 示例页面</footer>
 
   <!-- PayPal SDK：把 client-id 换成你自己的（sandbox 或 live） -->
   <script src="https://www.paypal.com/sdk/js?client-id=AVIwqSMaljVYyZ6Lx3FRqdavhLPGNBoq5-CydnhCespvJoeaYtBXnypAN8qoVGfrWRkARWULH2_7Anrd&currency=USD"></script>
@@ -78,16 +78,16 @@
         currency: "USD",
         stock: 20,
         img: "image/微信图片_20250917183827_3103_215.jpg",
-        description: { zh: "可以印字的陶瓷杯", en: "Ceramic mug with custom text" }
+        description: { zh: "精涂黄色小人", en: "Carefully painted yellow little monster" }
       },
       {
         id: "shirt001",
-        title: { zh: "定制T恤", en: "Custom T-Shirt" },
-        price: 28.00,
+        title: { zh: "蓝色小人", en: "A blue soldier" },
+        price: 13.00,
         currency: "USD",
         stock: 10,
-        img: "https://images.unsplash.com/photo-1520975915910-7f8b2d2a1a8d?auto=format&fit=crop&w=800&q=60",
-        description: { zh: "印图案的纯棉T恤", en: "100% cotton T-shirt" }
+        img: "image/微信图片_20250917183828_3104_215.jpg",
+        description: { zh: "我也不知道叫啥名", en: "IDK his name" }
       }
     ];
 
@@ -230,8 +230,8 @@
     function setLang(l){
       lang = l;
       localStorage.setItem('lang', lang);
-      document.getElementById('site-title').innerText = (lang==='zh'?'简洁定制店':'Simple Custom Shop');
-      document.getElementById('heading-products').innerText = (lang==='zh'?'产品':'Products');
+      document.getElementById('site-title').innerText = (lang==='zh'?'模型涂装定制店':'Model Painting Custom Shop');
+      document.getElementById('heading-products').innerText = (lang==='zh'?'成品':'Finished Products');
       document.getElementById('cart-title').innerText = (lang==='zh'?'购物车':'Cart');
       renderProducts();
       renderCart();
