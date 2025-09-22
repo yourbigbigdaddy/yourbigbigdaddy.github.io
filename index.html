@@ -108,6 +108,26 @@
       }
     ];
 
+    // 快速浏览图片数组，每个商品5张
+    const QUICK_VIEW_IMAGES = {
+      "mug001": [
+        "image/1.jpg",
+        "image/2.jpg",
+        "image/3.jpg",
+        "image/4.jpg",
+        "image/5.jpg"
+      ],
+      "shirt001": [
+        "image/11.jpg",
+        "image/22.jpg",
+        "image/33.jpg",
+        "image/shirt001-4.jpg",
+        "image/shirt001-5.jpg"
+      ]
+    };
+    let quickIndex = 0;
+    let quickViewImages = [];
+
     // 简易优惠券（客户端验证：仅作示例）
     const COUPONS = {
       "DISCOUNT10": { type: "percent", value: 10 }, // 10% off
@@ -150,34 +170,26 @@
     }
 
     /********** 快速浏览轮播相关 **********/
-    const QUICK_VIEW_IMAGES = [
-      "image/1.jpg",
-      "image/2.jpg",
-      "image/3.jpg",
-      "image/4.jpg",
-      "image/5.jpg"
-    ];
-    let quickIndex = 0;
-
-    function showQuickView(startIdx = 0){
+    function showQuickView(images, startIdx = 0){
+      quickViewImages = images;
       quickIndex = startIdx;
       const modal = document.getElementById('quick-view-modal');
       const img = document.getElementById('quick-img');
       const idxText = document.getElementById('quick-index');
       function update(){
-        img.src = QUICK_VIEW_IMAGES[quickIndex];
-        idxText.innerText = (quickIndex+1) + "/" + QUICK_VIEW_IMAGES.length;
+        img.src = quickViewImages[quickIndex];
+        idxText.innerText = (quickIndex+1) + "/" + quickViewImages.length;
       }
       update();
       modal.style.display = 'flex';
 
       // 按钮事件
       document.getElementById('quick-prev').onclick = function(){
-        quickIndex = (quickIndex - 1 + QUICK_VIEW_IMAGES.length) % QUICK_VIEW_IMAGES.length;
+        quickIndex = (quickIndex - 1 + quickViewImages.length) % quickViewImages.length;
         update();
       };
       document.getElementById('quick-next').onclick = function(){
-        quickIndex = (quickIndex + 1) % QUICK_VIEW_IMAGES.length;
+        quickIndex = (quickIndex + 1) % quickViewImages.length;
         update();
       };
       document.getElementById('quick-close-btn').onclick = function(){
@@ -189,9 +201,13 @@
       };
     }
 
-    // 替换 openQuick 实现为打开轮播
     function openQuick(id){
-      showQuickView(0); // 默认从第一张图开始
+      const images = QUICK_VIEW_IMAGES[id] || [];
+      if (images.length === 0) {
+        alert(lang === 'zh' ? '没有可预览图片' : 'No images for this product');
+        return;
+      }
+      showQuickView(images, 0); // 默认从第一张图开始
     }
 
     /********** 购物车逻辑 **********/
