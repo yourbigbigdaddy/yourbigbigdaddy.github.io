@@ -28,9 +28,14 @@
     /* 轮播弹窗相关 */
     #quick-view-modal { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:rgba(0,0,0,0.65); align-items:center; justify-content:center; }
     #quick-view-modal .quick-modal-content { background:#fff; padding:24px; border-radius:10px; max-width:90vw; max-height:90vh; position:relative; display:flex; flex-direction:column; align-items:center; }
-    #quick-view-modal img { width:360px; max-width:70vw; max-height:60vh; border-radius:8px; margin-bottom:12px; background:#eee; }
+    /* 显示大图：最大宽度1000px，最大高度80vh，宽高自适应窗口 */
+    #quick-view-modal img { width:auto; height:auto; max-width:1000px; max-height:80vh; border-radius:8px; margin-bottom:12px; background:#eee; display:block; }
     #quick-view-modal .quick-close-btn { position:absolute;right:10px;top:10px;font-size:22px;background:transparent;border:none;cursor:pointer; }
-    @media (max-width:900px){ main { grid-template-columns:1fr; } .cart{ order:2 } }
+    @media (max-width:900px){
+      main { grid-template-columns:1fr; }
+      .cart{ order:2 }
+      #quick-view-modal img { max-width:98vw; max-height:65vh; }
+    }
   </style>
 </head>
 <body>
@@ -121,8 +126,8 @@
         "image/11.jpg",
         "image/22.jpg",
         "image/33.jpg",
-        "image/shirt001-4.jpg",
-        "image/shirt001-5.jpg"
+        "image/44.jpg",
+        "image/55.jpg"
       ]
     };
     let quickIndex = 0;
