@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Model Painting Custom Shop模型涂装定制店</title>
   <style>
-    /* 简洁样式：你可以按需改 */
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; padding:0; background:#f7f7f8; color:#222; }
     header { background:#fff; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 0 rgba(0,0,0,.06); position:sticky; top:0; z-index:10; }
     .brand { font-weight:700; font-size:18px; }
@@ -26,12 +25,17 @@
     #paypal-buttons { margin-top:12px; }
     footer { padding:20px; text-align:center; color:#888; font-size:13px; }
     .langbtn { border:1px solid #eee; padding:6px 8px; border-radius:6px; cursor:pointer; background:#fff; }
+    /* 轮播弹窗相关 */
+    #quick-view-modal { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:rgba(0,0,0,0.65); align-items:center; justify-content:center; }
+    #quick-view-modal .quick-modal-content { background:#fff; padding:24px; border-radius:10px; max-width:90vw; max-height:90vh; position:relative; display:flex; flex-direction:column; align-items:center; }
+    #quick-view-modal img { width:360px; max-width:70vw; max-height:60vh; border-radius:8px; margin-bottom:12px; background:#eee; }
+    #quick-view-modal .quick-close-btn { position:absolute;right:10px;top:10px;font-size:22px;background:transparent;border:none;cursor:pointer; }
     @media (max-width:900px){ main { grid-template-columns:1fr; } .cart{ order:2 } }
   </style>
 </head>
 <body>
   <header>
-    <div class="brand" id="site-title">简洁定制店</div>
+    <div class="brand" id="site-title">Model Painting Custom Shop</div>
     <div class="controls">
       <div>
         <button class="langbtn" onclick="setLang('zh')">中文</button>
@@ -64,6 +68,19 @@
   </main>
 
   <footer>© 模型涂装定制店Model Painting Custom Shop</footer>
+
+  <!-- 轮播弹窗结构 -->
+  <div id="quick-view-modal">
+    <div class="quick-modal-content">
+      <button class="quick-close-btn" id="quick-close-btn">×</button>
+      <img id="quick-img" src="" />
+      <div style="display:flex;gap:16px;align-items:center;justify-content:center;">
+        <button id="quick-prev" class="btn secondary">上一张</button>
+        <span id="quick-index" class="small">1/5</span>
+        <button id="quick-next" class="btn secondary">下一张</button>
+      </div>
+    </div>
+  </div>
 
   <!-- PayPal SDK：把 client-id 换成你自己的（sandbox 或 live） -->
   <script src="https://www.paypal.com/sdk/js?client-id=AVIwqSMaljVYyZ6Lx3FRqdavhLPGNBoq5-CydnhCespvJoeaYtBXnypAN8qoVGfrWRkARWULH2_7Anrd&currency=USD"></script>
@@ -132,9 +149,49 @@
       });
     }
 
+    /********** 快速浏览轮播相关 **********/
+    const QUICK_VIEW_IMAGES = [
+      "image/1.jpg",
+      "image/2.jpg",
+      "image/3.jpg",
+      "image/4.jpg",
+      "image/5.jpg"
+    ];
+    let quickIndex = 0;
+
+    function showQuickView(startIdx = 0){
+      quickIndex = startIdx;
+      const modal = document.getElementById('quick-view-modal');
+      const img = document.getElementById('quick-img');
+      const idxText = document.getElementById('quick-index');
+      function update(){
+        img.src = QUICK_VIEW_IMAGES[quickIndex];
+        idxText.innerText = (quickIndex+1) + "/" + QUICK_VIEW_IMAGES.length;
+      }
+      update();
+      modal.style.display = 'flex';
+
+      // 按钮事件
+      document.getElementById('quick-prev').onclick = function(){
+        quickIndex = (quickIndex - 1 + QUICK_VIEW_IMAGES.length) % QUICK_VIEW_IMAGES.length;
+        update();
+      };
+      document.getElementById('quick-next').onclick = function(){
+        quickIndex = (quickIndex + 1) % QUICK_VIEW_IMAGES.length;
+        update();
+      };
+      document.getElementById('quick-close-btn').onclick = function(){
+        modal.style.display = 'none';
+      };
+      // 点击遮罩关闭
+      modal.onclick = function(e){
+        if(e.target === modal) modal.style.display = 'none';
+      };
+    }
+
+    // 替换 openQuick 实现为打开轮播
     function openQuick(id){
-      const p = PRODUCTS.find(x=>x.id===id);
-      alert((lang==='zh'?p.title.zh:p.title.en) + "\\n$" + formatMoney(p.price) + "\\n\\n" + (lang==='zh'?p.description.zh:p.description.en));
+      showQuickView(0); // 默认从第一张图开始
     }
 
     /********** 购物车逻辑 **********/
@@ -238,15 +295,12 @@
     }
 
     /********** PayPal 客户端结账（actions.order.create） **********/
-    // 注意：script标签顶部必须包含 PayPal SDK 并把 client-id 替换为你的
     function renderPayPalButtons(){
       const container = document.getElementById('paypal-buttons');
       container.innerHTML = '';
       if(cart.length === 0) return;
-      // 确保 paypal 对象存在
       if(typeof paypal === 'undefined'){ container.innerText = (lang==='zh'?'支付暂不可用':'Payment unavailable'); return; }
 
-      // 重新创建按钮（如果多次调用，PayPal SDK 会覆盖上一次）
       paypal.Buttons({
         createOrder: function(data, actions) {
           const subtotal = computeSubtotal();
@@ -255,7 +309,6 @@
             if(appliedCoupon.type === 'percent') total = total * (1 - appliedCoupon.value/100);
             else if(appliedCoupon.type === 'fixed') total = Math.max(0, total - appliedCoupon.value);
           }
-          // items 列表（供显示）
           const items = cart.map(i=>{
             const p = PRODUCTS.find(x=>x.id===i.id);
             return {
@@ -280,10 +333,8 @@
         },
         onApprove: function(data, actions) {
           return actions.order.capture().then(function(details) {
-            // 支付成功后的处理（这里是客户端示例）
             const payerName = details.payer && details.payer.name && details.payer.name.given_name ? details.payer.name.given_name : '';
             alert((lang==='zh'?'支付成功，感谢 ':'Payment complete, thanks ') + payerName + '!');
-            // 这里可以做：发邮件给自己，清空购物车，减少库存（但注意：客户端减少库存并不防并发）
             cart = [];
             appliedCoupon = null;
             saveCart();
